@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>account_business</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NRules" Version="1.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../account-entities/account-entities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Prevent accidental test files from being compiled into the library project -->
+    <Compile Remove="tests/**" />
+  </ItemGroup>
+
+</Project>

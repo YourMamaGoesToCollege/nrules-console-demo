@@ -1,0 +1,56 @@
+# .gitignore for .NET projects
+# Visual Studio
+.vs/
+.vscode/
+
+# Build outputs
+bin/
+obj/
+
+# Rider
+.idea/
+
+# User-specific files
+*.user
+*.suo
+
+# NuGet packages
+*.nupkg
+# The packages folder can be ignored because it's restored by NuGet
+**/packages/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local DBs
+*.mdf
+*.ldf
+*.db
+
+# EF Migrations snapshot etc
+**/Migrations/*.Snapshot.cs
+
+# JetBrains Rider
+.idea/
+
+# Test result files
+TestResults/
+
+# dotnet tool local manifest
+.dotnet/
+
+# Resharper
+_ReSharper*/
+
+# Editors
+*~
+
+# Secrets
+secrets.json
+
+# Ignore specific workspace files
+nrules-console-demo.suo
