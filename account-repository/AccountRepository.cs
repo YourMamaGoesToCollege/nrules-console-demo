@@ -30,18 +30,13 @@ namespace AccountRepository
             _context.Accounts.Add(account);
             await _context.SaveChangesAsync();
 
-            try
-            {
-                // Reload the tracked entity so provider-generated fields (AccountId, timestamps) are populated
-                await _context.Entry(account).ReloadAsync();
-                return account;
-            }
-            catch
-            {
-                // Fallback: query the DB by email
-                var persisted = await _context.Accounts.FirstOrDefaultAsync(a => a.EmailAddress == account.EmailAddress);
-                return persisted ?? account;
-            }
+            // Query the DB for the persisted entity to guarantee we return an instance with database-generated
+            // values populated (works reliably across providers, including InMemory).
+            var persistedEntity = await _context.Accounts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.EmailAddress == account.EmailAddress);
+
+            return persistedEntity ?? account;
         }
 
         public async Task<Account?> GetByIdAsync(int accountId)

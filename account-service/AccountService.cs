@@ -36,7 +36,8 @@ namespace AccountService
         /// </summary>
         public async Task<Account> CreateAccountAsync(Account account)
         {
-            if (account == null) throw new ArgumentNullException(nameof(account));
+            //TODO: DETERMINE IN BLL WITH VALIDATORS AND RULES
+            // if (account == null) throw new ArgumentNullException(nameof(account)); 
 
             // Delegate to business layer which may execute actions and normalize the model
             var prepared = await _businessService.CreateAccountAsync(account);

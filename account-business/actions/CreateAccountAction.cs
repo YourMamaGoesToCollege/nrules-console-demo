@@ -11,17 +11,18 @@ namespace AccountBusiness.Actions
         public string Username { get; }
         public string Email { get; }
 
-        public Account account {get;}
+        private readonly Account _account;
 
         public CreateAccountAction(Account account)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
 
-            this.account = account;
+            _account = account;
 
             // Map existing Account model fields to the action's expectations.
-            // normalize account values;
             var first = account.FirstName?.Trim();
+            var last = account.LastName?.Trim();
+
             Username = string.IsNullOrWhiteSpace(first) && string.IsNullOrWhiteSpace(last)
                 ? throw new ArgumentException("FirstName or LastName is required on Account", nameof(account))
                 : $"{first} {last}".Trim();

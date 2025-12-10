@@ -20,6 +20,10 @@ namespace AccountRepository
             {
                 entity.HasKey(e => e.AccountId);
 
+                // Ensure AccountId is treated as a database-generated identity
+                entity.Property(e => e.AccountId)
+                    .ValueGeneratedOnAdd();
+
                 entity.Property(e => e.FirstName)
                     .IsRequired()
                     .HasMaxLength(100);
