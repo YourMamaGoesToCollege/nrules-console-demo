@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AccountEntities;
 
@@ -6,7 +7,7 @@ namespace AccountBusiness.Actions
 {
     public record CreatedAccount(Guid Id, string Username, string Email, DateTime CreatedAt);
 
-    public class CreateAccountAction : BusinessAction<CreatedAccount>
+    public class CreateAccountAction : BusinessActionBase<CreatedAccount>
     {
         public string Username { get; }
         public string Email { get; }
@@ -30,15 +31,25 @@ namespace AccountBusiness.Actions
             Email = account.EmailAddress?.Trim() ?? throw new ArgumentNullException(nameof(account.EmailAddress));
         }
 
-        protected override Task PreExecuteAsync()
+        protected override Task ValidateInputs()
         {
-            if (string.IsNullOrWhiteSpace(Username))
-                throw new ArgumentException("Username is required.", nameof(Username));
-
-            if (string.IsNullOrWhiteSpace(Email))
-                throw new ArgumentException("Email is required.", nameof(Email));
+            ValidateRequired(Username, nameof(Username));
+            ValidateEmail(Email, nameof(Email));
 
             return Task.CompletedTask;
+        }
+
+        protected override Task<Dictionary<string, object>> GetAuditContext(CreatedAccount result)
+        {
+            var context = new Dictionary<string, object>
+            {
+                { "AccountId", result.Id },
+                { "Username", result.Username },
+                { "Email", result.Email },
+                { "CreatedAt", result.CreatedAt }
+            };
+
+            return Task.FromResult(context);
         }
 
         protected override async Task<CreatedAccount> RunAsync()

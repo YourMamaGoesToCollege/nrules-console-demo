@@ -22,9 +22,18 @@ namespace AccountBusiness.Actions
         }
 
         /// <summary>
-        /// Override to run logic before the main action. Default does nothing.
+        /// Override to run logic before the main action. Calls Validate by default.
         /// </summary>
-        protected virtual Task PreExecuteAsync()
+        protected virtual async Task PreExecuteAsync()
+        {
+            await Validate();
+        }
+
+        /// <summary>
+        /// Validates the action inputs before execution.
+        /// Override to implement specific validation logic.
+        /// </summary>
+        protected virtual Task Validate()
         {
             return Task.CompletedTask;
         }
@@ -35,9 +44,18 @@ namespace AccountBusiness.Actions
         protected abstract Task<T> RunAsync();
 
         /// <summary>
-        /// Override to run logic after the main action. Default does nothing.
+        /// Override to run logic after the main action. Calls AuditLog by default.
         /// </summary>
-        protected virtual Task PostExecuteAsync(T result)
+        protected virtual async Task PostExecuteAsync(T result)
+        {
+            await AuditLog(result);
+        }
+
+        /// <summary>
+        /// Provides contextual audit logging for the action.
+        /// Override to implement specific audit logging logic.
+        /// </summary>
+        protected virtual Task AuditLog(T result)
         {
             return Task.CompletedTask;
         }
