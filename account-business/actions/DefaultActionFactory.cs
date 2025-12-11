@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AccountBusiness.Actions
 {
@@ -15,13 +16,25 @@ namespace AccountBusiness.Actions
         {
             if (_provider != null)
             {
-                // Try to resolve from DI if available
-                var service = _provider.GetService(typeof(T)) as T;
-                if (service != null) return service;
+                try
+                {
+                    // Use DI container with ActivatorUtilities to resolve services
+                    // This will inject registered services (IAccountRepository, ILogger<T>)
+                    // and use provided args for non-service parameters (like Account)
+                    return ActivatorUtilities.CreateInstance<T>(_provider, args);
+                }
+                catch (Exception ex)
+                {
+                    // Log or wrap the exception with more context
+                    throw new InvalidOperationException(
+                        $"Failed to create instance of {typeof(T).Name} using DI. " +
+                        $"Ensure all required services are registered. Error: {ex.Message}", ex);
+                }
             }
 
-            // Fallback to Activator
-            return Activator.CreateInstance(typeof(T), args) as T ?? throw new InvalidOperationException($"Unable to create action of type {typeof(T)}");
+            // Fallback to Activator when no service provider available
+            return Activator.CreateInstance(typeof(T), args) as T
+                ?? throw new InvalidOperationException($"Unable to create action of type {typeof(T)}");
         }
     }
 }

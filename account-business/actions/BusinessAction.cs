@@ -48,8 +48,11 @@ namespace AccountBusiness.Actions
         /// </summary>
         protected virtual async Task PostExecuteAsync(T result)
         {
+            await PostValidate();
             await AuditLog(result);
         }
+
+        protected abstract Task PostValidate();
 
         /// <summary>
         /// Provides contextual audit logging for the action.

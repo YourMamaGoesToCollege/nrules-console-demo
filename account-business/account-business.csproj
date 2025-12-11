@@ -9,10 +9,13 @@
 
   <ItemGroup>
     <PackageReference Include="NRules" Version="1.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../account-entities/account-entities.csproj" />
+    <ProjectReference Include="../account-repository/account-repository.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,6 +2,8 @@ using AccountEntities;
 using AccountRepository;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using AccountSvc = AccountService.AccountService;
 
@@ -27,7 +29,16 @@ namespace AccountService.Tests
         // Helper to create AccountService with business service for DI
         private AccountSvc CreateService(AccountRepository.AccountRepository repo)
         {
-            return new AccountSvc(repo, new AccountBusiness.AccountBusinessService());
+            // Set up a simple service collection for DI
+            var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+            services.AddSingleton<AccountRepository.IAccountRepository>(repo);
+            services.AddLogging(); // Adds ILogger<T> support
+            var serviceProvider = services.BuildServiceProvider();
+
+            var businessService = new AccountBusiness.AccountBusinessService(
+                new AccountBusiness.Actions.DefaultActionFactory(serviceProvider),
+                repo);
+            return new AccountSvc(repo, businessService);
         }
 
         #region CreateAccount Tests
@@ -82,10 +93,10 @@ namespace AccountService.Tests
             var email = "test@example.com";
 
             // Act & Assert
-            await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = email });
+            await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = email });
 
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992,5,20), EmailAddress = email }));
+                () => service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992, 5, 20), EmailAddress = email }));
 
             exception.Message.Should().Contain("already exists");
         }
@@ -99,7 +110,7 @@ namespace AccountService.Tests
             var service = CreateService(repository);
 
             // Act
-            var result = await service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992,5,20), EmailAddress = "jane@example.com" });
+            var result = await service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992, 5, 20), EmailAddress = "jane@example.com" });
 
             // Assert
             result.Should().NotBeNull();
@@ -116,10 +127,11 @@ namespace AccountService.Tests
             var service = CreateService(repository);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.CreateAccountAsync(new Account { FirstName = "", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com" }));
+            var exception = await Assert.ThrowsAsync<AggregateException>(
+                () => service.CreateAccountAsync(new Account { FirstName = "", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com" }));
 
-            exception.ParamName.Should().Be("firstName");
+            exception.InnerException.Should().BeOfType<ArgumentException>();
+            exception.Message.Should().Contain("FirstName is required");
         }
 
         [Fact]
@@ -131,10 +143,11 @@ namespace AccountService.Tests
             var service = CreateService(repository);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com" }));
+            var exception = await Assert.ThrowsAsync<AggregateException>(
+                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com" }));
 
-            exception.ParamName.Should().Be("lastName");
+            exception.InnerException.Should().BeOfType<ArgumentException>();
+            exception.Message.Should().Contain("LastName is required");
         }
 
         [Fact]
@@ -148,10 +161,11 @@ namespace AccountService.Tests
             var futureDate = DateTime.Now.AddDays(1);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = futureDate, EmailAddress = "john@example.com" }));
+            var exception = await Assert.ThrowsAsync<AggregateException>(
+                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = DateTime.Now.AddYears(1), EmailAddress = "john@example.com" }));
 
-            exception.Message.Should().Contain("cannot be in the future");
+            exception.InnerException.Should().BeOfType<ArgumentException>();
+            exception.Message.Should().Contain("18 years old");
         }
 
         [Fact]
@@ -163,10 +177,11 @@ namespace AccountService.Tests
             var service = CreateService(repository);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "invalid-email" }));
+            var exception = await Assert.ThrowsAsync<AggregateException>(
+                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "not-an-email" }));
 
-            exception.Message.Should().Contain("Invalid email format");
+            exception.InnerException.Should().BeOfType<ArgumentException>();
+            exception.Message.Should().Contain("email format");
         }
 
         [Fact]
@@ -178,10 +193,11 @@ namespace AccountService.Tests
             var service = CreateService(repository);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com", PetCount = -1 }));
+            var exception = await Assert.ThrowsAsync<AggregateException>(
+                () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com", PetCount = -1 }));
 
-            exception.Message.Should().Contain("cannot be negative");
+            exception.InnerException.Should().BeOfType<ArgumentException>();
+            exception.Message.Should().Contain("Pet count");
         }
 
         [Fact]
@@ -195,7 +211,7 @@ namespace AccountService.Tests
             var email = "JOHN.DOE@EXAMPLE.COM";
 
             // Act
-            var result = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = email });
+            var result = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = email });
 
             // Assert
             result.EmailAddress.Should().Be(email.ToLower());
@@ -207,10 +223,10 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
             // Act
-            var result = await service.CreateAccountAsync(new Account { FirstName = "  John  ", LastName = "  Doe  ", BirthDate = new DateTime(1990,1,15), EmailAddress = "  john@example.com  " });
+            var result = await service.CreateAccountAsync(new Account { FirstName = "  John  ", LastName = "  Doe  ", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "  john@example.com  " });
 
             // Assert
             result.FirstName.Should().Be("John");
@@ -228,9 +244,9 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
-            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com" });
+            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com" });
 
             // Act
             var result = await service.GetAccountAsync(created.AccountId);
@@ -247,7 +263,7 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
             // Act
             var result = await service.GetAccountAsync(999);
@@ -262,10 +278,10 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
             var email = "john@example.com";
-            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = email });
+            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = email });
 
             // Act
             var result = await service.GetAccountByEmailAsync(email);
@@ -281,7 +297,7 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
             // Act
             var result = await service.GetAccountByEmailAsync("nonexistent@example.com");
@@ -300,11 +316,11 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
-            await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com" });
-            await service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992,5,20), EmailAddress = "jane@example.com" });
-            await service.CreateAccountAsync(new Account { FirstName = "Bob", LastName = "Johnson", BirthDate = new DateTime(1985,3,10), EmailAddress = "bob@example.com" });
+            await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com" });
+            await service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992, 5, 20), EmailAddress = "jane@example.com" });
+            await service.CreateAccountAsync(new Account { FirstName = "Bob", LastName = "Johnson", BirthDate = new DateTime(1985, 3, 10), EmailAddress = "bob@example.com" });
 
             // Act
             var result = await service.GetAllAccountsAsync();
@@ -319,11 +335,11 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
-            await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com", IsActive = true });
-            await service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992,5,20), EmailAddress = "jane@example.com", IsActive = false });
-            await service.CreateAccountAsync(new Account { FirstName = "Bob", LastName = "Johnson", BirthDate = new DateTime(1985,3,10), EmailAddress = "bob@example.com", IsActive = true });
+            await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com", IsActive = true });
+            await service.CreateAccountAsync(new Account { FirstName = "Jane", LastName = "Smith", BirthDate = new DateTime(1992, 5, 20), EmailAddress = "jane@example.com", IsActive = false });
+            await service.CreateAccountAsync(new Account { FirstName = "Bob", LastName = "Johnson", BirthDate = new DateTime(1985, 3, 10), EmailAddress = "bob@example.com", IsActive = true });
 
             // Act
             var result = await service.GetActiveAccountsAsync();
@@ -343,14 +359,14 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
-            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com", PetCount = 2 });
+            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com", PetCount = 2 });
 
             // Act - update by mutating the returned model and sending it back
             created.FirstName = "Jane";
             created.LastName = "Smith";
-            created.BirthDate = new DateTime(1992,5,20);
+            created.BirthDate = new DateTime(1992, 5, 20);
             created.EmailAddress = "jane@example.com";
             created.PetCount = 3;
 
@@ -368,11 +384,11 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.UpdateAccountAsync(new Account { AccountId = 999, FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com" }));
+                () => service.UpdateAccountAsync(new Account { AccountId = 999, FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com" }));
 
             exception.Message.Should().Contain("not found");
         }
@@ -387,9 +403,9 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
-            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990,1,15), EmailAddress = "john@example.com" });
+            var created = await service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "john@example.com" });
 
             // Act
             var result = await service.DeleteAccountAsync(created.AccountId);
@@ -406,7 +422,7 @@ namespace AccountService.Tests
             // Arrange
             var dbContext = CreateInMemoryDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
-            var service = new AccountSvc(repository);
+            var service = CreateService(repository);
 
             // Act
             var result = await service.DeleteAccountAsync(999);

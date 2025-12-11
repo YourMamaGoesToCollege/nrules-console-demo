@@ -18,14 +18,21 @@ namespace AccountBusiness.Actions
         protected List<string> ValidationErrors { get; } = new();
 
         /// <summary>
-        /// Validates inputs by calling ValidateInputs().
+        /// Validates the action.
         /// Throws AggregateException if any validation errors are found.
         /// </summary>
-        protected override async Task Validate()
+        protected override Task Validate()
         {
             ValidationErrors.Clear();
-            await ValidateInputs();
+            return Task.CompletedTask;
+        }
 
+        /// <summary>
+        /// Override to implement post-execution validation logic.
+        /// This is called after RunAsync() completes but before AuditLog().
+        /// </summary>
+        protected override Task PostValidate()
+        {
             if (ValidationErrors.Count > 0)
             {
                 var exceptions = new List<Exception>();
@@ -35,14 +42,6 @@ namespace AccountBusiness.Actions
                 }
                 throw new AggregateException("Validation failed", exceptions);
             }
-        }
-
-        /// <summary>
-        /// Override to implement specific validation logic.
-        /// Add validation errors to ValidationErrors collection.
-        /// </summary>
-        protected virtual Task ValidateInputs()
-        {
             return Task.CompletedTask;
         }
 
@@ -91,49 +90,6 @@ namespace AccountBusiness.Actions
             }
         }
 
-        /// <summary>
-        /// Helper method to validate required string field.
-        /// </summary>
-        protected void ValidateRequired(string value, string fieldName)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                AddValidationError($"{fieldName} is required.");
-            }
-        }
 
-        /// <summary>
-        /// Helper method to validate email format.
-        /// </summary>
-        protected void ValidateEmail(string email, string fieldName = "Email")
-        {
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                AddValidationError($"{fieldName} is required.");
-                return;
-            }
-
-            if (!email.Contains("@") || !email.Contains("."))
-            {
-                AddValidationError($"{fieldName} must be a valid email address.");
-            }
-        }
-
-        /// <summary>
-        /// Helper method to validate minimum length.
-        /// </summary>
-        protected void ValidateMinLength(string value, int minLength, string fieldName)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                AddValidationError($"{fieldName} is required.");
-                return;
-            }
-
-            if (value.Length < minLength)
-            {
-                AddValidationError($"{fieldName} must be at least {minLength} characters long.");
-            }
-        }
     }
 }

@@ -32,16 +32,6 @@ namespace AccountService.Tests
         }
 
         [Fact]
-        public void ValidateAccountInput_InvalidEmail_Throws()
-        {
-            var svc = new AccountBusinessService();
-
-            Action act = () => svc.ValidateAccountInput("John", "Doe", new DateTime(1990,1,1), "not-an-email", "City", 0);
-
-            act.Should().Throw<ArgumentException>().And.Message.Should().Contain("Invalid email format");
-        }
-
-        [Fact]
         public void ValidateAccountId_Invalid_Throws()
         {
             var svc = new AccountBusinessService();

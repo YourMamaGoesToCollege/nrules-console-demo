@@ -22,7 +22,9 @@ namespace AccountService
 
         // Convenience constructor to preserve existing callers
         public AccountService(IAccountRepository accountRepository)
-            : this(accountRepository, new AccountBusinessService())
+            : this(accountRepository, new AccountBusinessService(
+                new AccountBusiness.Actions.DefaultActionFactory(null),
+                accountRepository))
         {
         }
 
@@ -96,9 +98,8 @@ namespace AccountService
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
 
-            // Validate id and account
+            // Validate id
             _businessService.ValidateAccountId(account.AccountId);
-            _businessService.ValidateAccount(account);
 
             var existing = await _accountRepository.GetByIdAsync(account.AccountId);
             if (existing == null)

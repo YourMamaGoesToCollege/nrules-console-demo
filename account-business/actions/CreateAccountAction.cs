@@ -1,70 +1,108 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AccountEntities;
+using AccountRepository;
+using Microsoft.Extensions.Logging;
+using NRules;
+using NRules.Fluent;
+using AccountBusiness.Rules;
 
 namespace AccountBusiness.Actions
 {
-    public record CreatedAccount(Guid Id, string Username, string Email, DateTime CreatedAt);
-
-    public class CreateAccountAction : BusinessActionBase<CreatedAccount>
+    public class CreateAccountAction : BusinessActionBase<Account>
     {
-        public string Username { get; }
-        public string Email { get; }
-
         private readonly Account _account;
+        private readonly IAccountRepository _repository;
+        private readonly ILogger<CreateAccountAction>? _logger;
 
-        public CreateAccountAction(Account account)
+        public CreateAccountAction(
+            Account account,
+            IAccountRepository repository,
+            ILogger<CreateAccountAction>? logger = null)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
+            if (repository == null) throw new ArgumentNullException(nameof(repository));
 
             _account = account;
-
-            // Map existing Account model fields to the action's expectations.
-            var first = account.FirstName?.Trim();
-            var last = account.LastName?.Trim();
-
-            Username = string.IsNullOrWhiteSpace(first) && string.IsNullOrWhiteSpace(last)
-                ? throw new ArgumentException("FirstName or LastName is required on Account", nameof(account))
-                : $"{first} {last}".Trim();
-
-            Email = account.EmailAddress?.Trim() ?? throw new ArgumentNullException(nameof(account.EmailAddress));
+            _repository = repository;
+            _logger = logger;
         }
 
-        protected override Task ValidateInputs()
+        protected override Task Validate()
         {
-            ValidateRequired(Username, nameof(Username));
-            ValidateEmail(Email, nameof(Email));
+            _logger?.LogInformation("Validating account creation for {Email}", _account.EmailAddress);
+
+            // Create NRules repository and load validation rules
+            var repository = new RuleRepository();
+            repository.Load(x => x.From(typeof(CreateAccountAction).Assembly));
+
+            // Compile rules into a session factory
+            var factory = repository.Compile();
+
+            // Create a session and insert the account for validation
+            var session = factory.CreateSession();
+            session.Insert(_account);
+
+            // Fire all rules
+            session.Fire();
+
+            // Query for validation errors
+            var errors = session.Query<ValidationError>().ToList();
+
+            // Add errors to ValidationErrors collection
+            foreach (var error in errors)
+            {
+                _logger?.LogWarning("Validation error: {ErrorMessage}", error.Message);
+                AddValidationError(error.Message);
+            }
+
+            // Log validation result
+            if (ValidationErrors.Count == 0)
+            {
+                _logger?.LogInformation("Validation passed for {FirstName} {LastName} ({Email})",
+                    _account.FirstName, _account.LastName, _account.EmailAddress);
+            }
+            else
+            {
+                _logger?.LogError("Validation failed with {ErrorCount} error(s)", ValidationErrors.Count);
+            }
 
             return Task.CompletedTask;
         }
 
-        protected override Task<Dictionary<string, object>> GetAuditContext(CreatedAccount result)
+        protected override Task<Dictionary<string, object>> GetAuditContext(Account result)
         {
             var context = new Dictionary<string, object>
             {
-                { "AccountId", result.Id },
-                { "Username", result.Username },
-                { "Email", result.Email },
+                { "AccountId", result.AccountId },
+                { "Username", $"{result.FirstName} {result.LastName}" },
+                { "Email", result.EmailAddress ?? string.Empty },
                 { "CreatedAt", result.CreatedAt }
             };
 
             return Task.FromResult(context);
         }
 
-        protected override async Task<CreatedAccount> RunAsync()
+        protected override async Task<Account> RunAsync()
         {
-            // Placeholder for persistence/creation logic.
-            // Replace with real repository calls / transaction handling.
-            await Task.Delay(10);
+            _logger?.LogInformation("Preparing account for {FirstName} {LastName} ({Email})",
+                _account.FirstName, _account.LastName, _account.EmailAddress);
 
-            return new CreatedAccount(
-                Id: Guid.NewGuid(),
-                Username: Username,
-                Email: Email,
-                CreatedAt: DateTime.UtcNow
-            );
+            // Set timestamps
+            _account.CreatedAt = DateTime.UtcNow;
+            _account.UpdatedAt = DateTime.UtcNow;
+
+            _logger?.LogInformation("Persisting account for {Email}", _account.EmailAddress);
+
+            // Persist the account to the repository
+            var savedAccount = await _repository.AddAsync(_account);
+
+            _logger?.LogInformation("Account created successfully with ID {AccountId} for {Email}",
+                savedAccount.AccountId, savedAccount.EmailAddress);
+
+            return savedAccount;
         }
-
     }
 }

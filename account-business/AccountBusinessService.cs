@@ -10,84 +10,45 @@ namespace AccountBusiness
     /// </summary>
     public class AccountBusinessService : IAccountBusinessService
     {
-    private readonly AccountValidationService _validator;
-    private readonly AccountBusinessRules _rules;
-    private readonly AccountBusiness.Actions.IActionFactory _actionFactory;
+        private readonly AccountBusinessRules _rules;
+        private readonly AccountBusiness.Actions.IActionFactory _actionFactory;
+        private readonly AccountRepository.IAccountRepository? _repository;
 
         public AccountBusinessService()
-            : this(new AccountBusiness.Actions.DefaultActionFactory(null))
+            : this(new AccountBusiness.Actions.DefaultActionFactory(null), null)
         {
         }
 
-        public AccountBusinessService(AccountBusiness.Actions.IActionFactory actionFactory)
+        public AccountBusinessService(
+            AccountBusiness.Actions.IActionFactory actionFactory,
+            AccountRepository.IAccountRepository? repository = null)
         {
-            _validator = new AccountValidationService();
             _rules = new AccountBusinessRules();
             _actionFactory = actionFactory ?? new AccountBusiness.Actions.DefaultActionFactory(null);
+            _repository = repository;
         }
 
-        public async Task<Account> CreateAccountAsync(Account account){
-            // if (account == null) throw new ArgumentNullException(nameof(account));
-
-            // // Validate using business service
-            // _validator.ValidateAccountInput(account.FirstName, account.LastName, account.BirthDate, account.EmailAddress, account.City, account.PetCount);
-
-            // // Prepare and return
-            // var prepared = PrepareForSave(account);
-            // return prepared;
-
-            // Validate input first (throws ArgumentException on bad input)
-            ValidateAccount(account);
-
-            var action = _actionFactory.Create<CreateAccountAction>(account);
-            var createdAccount = await action.ExecuteAsync();
-
-            // Map action result back onto the Account model so callers get meaningful fields set
-            if (createdAccount != null)
-            {
-                // Map email and timestamps
-                account.EmailAddress = createdAccount.Email ?? account.EmailAddress;
-                account.CreatedAt = createdAccount.CreatedAt;
-                account.UpdatedAt = createdAccount.CreatedAt;
-
-                // Try to split username into first/last name ("First Last")
-                if (!string.IsNullOrWhiteSpace(createdAccount.Username))
-                {
-                    var parts = createdAccount.Username.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 1)
-                    {
-                        account.FirstName = parts[0];
-                    }
-                    else if (parts.Length >= 2)
-                    {
-                        account.FirstName = parts[0];
-                        account.LastName = string.Join(' ', parts.Skip(1));
-                    }
-                }
-            }
-
-            // Action executed (e.g., logging, side-effects). Return prepared Account for persistence.
-            var prepared = PrepareForSave(account);
-            return prepared;
-        }
-
-        /// <summary>
-        /// Validate primitives used to create/update an account.
-        /// Throws ArgumentException on invalid input.
-        /// </summary>
-        public void ValidateAccountInput(string firstName, string lastName, DateTime birthDate, string emailAddress, string city, int petCount)
-        {
-            _validator.ValidateAccountInput(firstName, lastName, birthDate, emailAddress, city, petCount);
-        }
-
-        /// <summary>
-        /// Validate an Account entity directly (convenience wrapper).
-        /// </summary>
-        public void ValidateAccount(Account account)
+        public async Task<Account> CreateAccountAsync(Account account)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
-            _validator.ValidateAccountInput(account.FirstName, account.LastName, account.BirthDate, account.EmailAddress, account.City, account.PetCount);
+
+            // If repository is not injected, throw exception
+            if (_repository == null)
+            {
+                throw new InvalidOperationException(
+                        "IAccountRepository must be injected into AccountBusinessService for CreateAccountAsync operations.");
+            }
+
+            // Execute action which validates with NRules and prepares account for persistence
+            // Factory will resolve IAccountRepository and ILogger from DI if available
+            var action = _actionFactory.Create<CreateAccountAction>(account);
+            var preparedAccount = await action.ExecuteAsync();
+
+            // Return prepared account (caller will persist it)
+            return preparedAccount;
         }
+
+
 
         /// <summary>
         /// Normalize an email address according to business rules (trim + lower).
@@ -103,7 +64,8 @@ namespace AccountBusiness
         /// </summary>
         public void ValidateAccountId(int accountId)
         {
-            _validator.ValidateAccountId(accountId);
+            if (accountId <= 0)
+                throw new ArgumentException("Account ID must be greater than 0", nameof(accountId));
         }
 
         /// <summary>
