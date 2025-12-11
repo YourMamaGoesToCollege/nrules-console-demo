@@ -16,6 +16,7 @@ namespace AccountBusiness.Actions
         public async Task<T> ExecuteAsync()
         {
             await PreExecuteAsync();
+            // check for any rule violations before proceeding;
             var result = await RunAsync();
             await PostExecuteAsync(result);
             return result;
