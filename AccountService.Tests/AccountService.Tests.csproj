@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="NRules.Testing" Version="1.0.3" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
@@ -26,9 +27,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\account-service\account-service.csproj" />
-    <ProjectReference Include="..\account-repository\account-repository.csproj" />
-    <ProjectReference Include="..\account-entities\account-entities.csproj" />
+    <ProjectReference Include="..\AccountService\account-service.csproj" />
+    <ProjectReference Include="..\AccountRepository\account-repository.csproj" />
+    <ProjectReference Include="..\AccountEntities\account-entities.csproj" />
   </ItemGroup>
 
 </Project>

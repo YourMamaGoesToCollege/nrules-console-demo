@@ -5,22 +5,26 @@
 Your workspace now has 4 debug configurations in `.vscode/launch.json`:
 
 ### 1. **Debug Tests (AccountService.Tests)**
+
 - Builds and debugs the test project directly
 - Debugger stops at breakpoints in test code
 - Console: Internal (shows debug output in VS Code)
 - **Use when:** You want to step through test logic and inspect variables
 
 ### 2. **Debug Console App (nrules-console)**
+
 - Builds and debugs the console application
 - Console: Integrated Terminal (shows app output in VS Code terminal)
 - **Use when:** You want to debug the main application entry point
 
 ### 3. **Run Tests (No Debug)**
+
 - Builds and runs tests without debugger attached
 - Console: External Terminal (shows in system terminal)
 - **Use when:** You want to run tests and see output, but don't need line-by-line debugging
 
 ### 4. **Attach to Process**
+
 - Attaches debugger to a running process
 - **Use when:** You have a process already running and want to debug it
 
@@ -29,18 +33,21 @@ Your workspace now has 4 debug configurations in `.vscode/launch.json`:
 ## How to Debug
 
 ### Method 1: From Debug View (Easiest)
+
 1. Press `Shift+Cmd+D` (Mac) or `Ctrl+Shift+D` (Windows/Linux)
 2. Click the dropdown at the top of the Run & Debug panel
 3. Select a configuration (e.g., "Debug Tests (AccountService.Tests)")
 4. Click the green play button or press `F5`
 
 ### Method 2: From Command Palette
+
 1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
-2. Type "Debug:" 
+2. Type "Debug:"
 3. Select "Debug: Start Debugging"
 4. Choose a configuration from the dropdown
 
 ### Method 3: One-Click Test Debug
+
 1. Open any test file (e.g., `AccountService.Tests/AccountServiceIntegrationTests.cs`)
 2. You should see "Debug" links above `[Fact]` methods
 3. Click "Debug" and it runs that specific test in debug mode
@@ -50,15 +57,18 @@ Your workspace now has 4 debug configurations in `.vscode/launch.json`:
 ## Setting Breakpoints
 
 ### Line Breakpoint
+
 - Click in the left margin (line number area) → red dot appears
 - Debugger stops on that line before executing
 
 ### Conditional Breakpoint
+
 - Right-click line number → "Add Conditional Breakpoint"
 - Enter condition (e.g., `result.AccountId > 5`)
 - Only breaks when condition is true
 
 ### Logpoint (No breakpoint)
+
 - Right-click line number → "Add Logpoint"
 - Enter log message (e.g., `FirstName: {account.FirstName}`)
 - Logs without pausing execution
@@ -81,10 +91,12 @@ Your workspace now has 4 debug configurations in `.vscode/launch.json`:
 ## Inspecting Variables
 
 ### Hover Over Variables
+
 - Hover your mouse over any variable name while debugging
 - A popup shows the current value
 
 ### Watch Variables
+
 1. Open **Run & Debug** view (Shift+Cmd+D)
 2. Scroll to **WATCH** section
 3. Click **+** to add a variable
@@ -92,8 +104,10 @@ Your workspace now has 4 debug configurations in `.vscode/launch.json`:
 5. Value updates as you step through code
 
 ### Debug Console
+
 1. Open **View → Debug Console** or press `Shift+Cmd+Y`
 2. Type expressions and press Enter:
+
    ```
    result.AccountId
    account.EmailAddress
@@ -128,6 +142,7 @@ public async Task CreateAccountAsync_WithValidData_ReturnsAccountWithId()
 ```
 
 Steps:
+
 1. Click left margin on line with `var firstName = "John";`
 2. Click the green play button to start "Debug Tests (AccountService.Tests)"
 3. Debugger stops at the breakpoint
@@ -149,6 +164,7 @@ Your `tasks.json` defines several build/test tasks:
 - **clean**: Clean build artifacts
 
 To run a task:
+
 1. Press `Cmd+Shift+B` (Mac) or `Ctrl+Shift+B` (Windows/Linux)
 2. Select a task from the dropdown
 
@@ -157,20 +173,24 @@ To run a task:
 ## Troubleshooting
 
 **Breakpoints not working?**
+
 - Ensure you're running in Debug configuration (not Release)
 - Rebuild the project: press `Cmd+Shift+B` → select "build-all"
 - Restart VS Code
 
 **Debugger not stopping?**
+
 - Check that the launch configuration is correct
 - Verify the program path in `launch.json` matches your project structure
 - Check OmniSharp Log for errors: View → Output → OmniSharp Log
 
 **"Process exited before debugger attached"?**
+
 - The program ran too fast. Add a breakpoint at the start of your code
 - Or use a `System.Diagnostics.Debugger.Break()` to force a pause
 
 **Can't find a variable?**
+
 - Variable might be out of scope (stepped past its declaration)
 - Use Watch to add the variable while it's still in scope
 
@@ -189,11 +209,14 @@ To debug a **specific test** without running all tests:
 ## Pro Tips
 
 🎯 **Break on Exception**
+
 - View → Run & Debug → Breakpoints
 - Check "Break on All Exceptions" (will pause on any thrown exception)
 
 🎯 **Debug Console Expressions**
+
 - Debug Console can evaluate any C# expression:
+
   ```
   DateTime.Now.AddDays(5)
   Math.Sqrt(16)
@@ -201,12 +224,15 @@ To debug a **specific test** without running all tests:
   ```
 
 🎯 **Conditional Debug Output**
+
 - Use Debug Console to log complex values without stopping:
+
   ```csharp
   System.Diagnostics.Debug.WriteLine($"Account: {result.FirstName}");
   ```
 
 🎯 **Time Travel with IntelliTrace** (Premium)
+
 - VS Code doesn't have IntelliTrace, but you can use:
   - Breakpoint history
   - Console logging

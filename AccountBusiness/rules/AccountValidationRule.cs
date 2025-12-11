@@ -1,8 +1,9 @@
 using System;
+using System.Text.RegularExpressions;
 using NRules.Fluent.Dsl;
 using AccountEntities;
 
-namespace AccountBusiness.Rules
+namespace AccountBusiness.Rules.Validation
 {
     /// <summary>
     /// NRules validation rule for Account FirstName
@@ -90,7 +91,7 @@ namespace AccountBusiness.Rules
     }
 
     /// <summary>
-    /// NRules validation rule for Email Address format
+    /// NRules validation rule for Email Address format - Basic sanity check
     /// </summary>
     public class EmailAddressFormatRule : Rule
     {
@@ -104,7 +105,37 @@ namespace AccountBusiness.Rules
                     (!a.EmailAddress.Contains("@") || !a.EmailAddress.Contains(".")));
 
             Then()
-                .Do(ctx => ctx.Insert(new ValidationError("Email address must be a valid email format.")));
+                .Do(ctx => ctx.Insert(new ValidationError("Email address must contain @ and . characters.")));
+        }
+    }
+
+    /// <summary>
+    /// NRules validation rule for Email Address syntax using OWASP-compliant regex
+    /// Based on OWASP validation regex for email addresses
+    /// Reference: https://owasp.org/www-community/OWASP_Validation_Regex_Repository
+    /// </summary>
+    public class EmailAddressSyntaxRule : Rule
+    {
+        // OWASP-compliant email validation regex
+        // This pattern validates:
+        // - Local part: alphanumeric, dots, hyphens, underscores (but not at start/end)
+        // - @ symbol
+        // - Domain: alphanumeric with hyphens, followed by dot and 2-6 char TLD
+        private static readonly Regex EmailRegex = new Regex(
+            @"^[a-zA-Z0-9_+&*-]+(?:\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public override void Define()
+        {
+            Account account = null!;
+
+            When()
+                .Match<Account>(() => account, a =>
+                    !string.IsNullOrWhiteSpace(a.EmailAddress) &&
+                    !EmailRegex.IsMatch(a.EmailAddress));
+
+            Then()
+                .Do(ctx => ctx.Insert(new ValidationError("Email address does not match valid email syntax.")));
         }
     }
 

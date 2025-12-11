@@ -7,7 +7,7 @@ using AccountRepository;
 using Microsoft.Extensions.Logging;
 using NRules;
 using NRules.Fluent;
-using AccountBusiness.Rules;
+using AccountBusiness.Rules.Validation;
 
 namespace AccountBusiness.Actions
 {
@@ -28,6 +28,12 @@ namespace AccountBusiness.Actions
             _account = account;
             _repository = repository;
             _logger = logger;
+
+            // Trim fields immediately before validation
+            _account.FirstName = _account.FirstName?.Trim();
+            _account.LastName = _account.LastName?.Trim();
+            _account.EmailAddress = _account.EmailAddress?.Trim();
+            _account.City = _account.City?.Trim();
         }
 
         protected override Task Validate()
@@ -35,8 +41,10 @@ namespace AccountBusiness.Actions
             _logger?.LogInformation("Validating account creation for {Email}", _account.EmailAddress);
 
             // Create NRules repository and load validation rules
+            // Rules are organized in AccountBusiness.Rules.Validation namespace
+            // Loading from assembly - namespace provides logical organization
             var repository = new RuleRepository();
-            repository.Load(x => x.From(typeof(CreateAccountAction).Assembly));
+            repository.Load(x => x.From(typeof(FirstNameRequiredRule).Assembly));
 
             // Compile rules into a session factory
             var factory = repository.Compile();
@@ -90,11 +98,8 @@ namespace AccountBusiness.Actions
             _logger?.LogInformation("Preparing account for {FirstName} {LastName} ({Email})",
                 _account.FirstName, _account.LastName, _account.EmailAddress);
 
-            // Normalize and trim fields
-            _account.FirstName = _account.FirstName?.Trim();
-            _account.LastName = _account.LastName?.Trim();
-            _account.EmailAddress = _account.EmailAddress?.Trim().ToLower();
-            _account.City = _account.City?.Trim();
+            // Normalize email to lowercase (trimming already done in constructor)
+            _account.EmailAddress = _account.EmailAddress?.ToLower();
 
             // Set timestamps
             _account.CreatedAt = DateTime.UtcNow;

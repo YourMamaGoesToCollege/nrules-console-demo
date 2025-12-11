@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../account-entities/account-entities.csproj" />
-    <ProjectReference Include="../account-repository/account-repository.csproj" />
+    <ProjectReference Include="../AccountEntities/account-entities.csproj" />
+    <ProjectReference Include="../AccountRepository/account-repository.csproj" />
   </ItemGroup>
 
   <ItemGroup>

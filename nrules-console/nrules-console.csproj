@@ -13,10 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../account-business/account-business.csproj" />
-    <ProjectReference Include="../account-repository/account-repository.csproj" />
-    <ProjectReference Include="../account-entities/account-entities.csproj" />
-    <ProjectReference Include="../account-service/account-service.csproj" />
+    <ProjectReference Include="../AccountBusiness/account-business.csproj" />
+    <ProjectReference Include="../AccountRepository/account-repository.csproj" />
+    <ProjectReference Include="../AccountEntities/account-entities.csproj" />
+    <ProjectReference Include="../AccountService/account-service.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -39,17 +39,20 @@ Your .NET 8.0 NRules Console Demo solution is now fully set up and ready to use!
 ## Quick Start
 
 ### 1. Build the Solution
+
 ```bash
 cd /Users/mattvaughn/WORK/K12/REPOS/nrules-console-demo
 dotnet build
 ```
 
 ### 2. Run the Console App
+
 ```bash
 dotnet run --project nrules-console
 ```
 
 ### 3. Work with the Database
+
 ```bash
 # View the database schema
 sqlite3 ~/.nrules-console-demo/accounts.db
@@ -79,9 +82,10 @@ account-repository (uses Entity Framework Core + SQLite)
 ✅ Entity Framework Core with Fluent API configuration
 ✅ SQLite database with automatic migrations
 ✅ Account entity with comprehensive properties:
-   - FirstName, LastName, BirthDate
-   - IsActive, City, EmailAddress, PetCount
-   - CreatedAt, UpdatedAt (auto-generated)
+
+- FirstName, LastName, BirthDate
+- IsActive, City, EmailAddress, PetCount
+- CreatedAt, UpdatedAt (auto-generated)
 ✅ Unique email constraint with index
 ✅ NRules integration ready in account-business
 
@@ -94,6 +98,7 @@ export PATH="$PATH:/Users/$(whoami)/.dotnet/tools"
 ```
 
 Or permanently add to `~/.zprofile`:
+
 ```bash
 echo 'export PATH="$PATH:/Users/$(whoami)/.dotnet/tools"' >> ~/.zprofile
 source ~/.zprofile
@@ -110,6 +115,7 @@ source ~/.zprofile
 ## Documentation
 
 Full documentation is available in `README.md` including:
+
 - Architecture overview
 - Installation & setup
 - Database configuration

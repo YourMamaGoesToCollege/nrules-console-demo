@@ -181,7 +181,7 @@ namespace AccountService.Tests
                 () => service.CreateAccountAsync(new Account { FirstName = "John", LastName = "Doe", BirthDate = new DateTime(1990, 1, 15), EmailAddress = "not-an-email" }));
 
             exception.InnerException.Should().BeOfType<ArgumentException>();
-            exception.Message.Should().Contain("email format");
+            exception.Message.Should().Contain("email");
         }
 
         [Fact]

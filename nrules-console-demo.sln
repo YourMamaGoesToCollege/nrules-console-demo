@@ -5,13 +5,13 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nrules-console", "nrules-console\nrules-console.csproj", "{AAE58878-7448-4E3B-BBC6-8013D4F52C01}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-service", "account-service\account-service.csproj", "{4E9B01C8-DB39-439F-9A39-34DC0201817E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-service", "AccountService\account-service.csproj", "{4E9B01C8-DB39-439F-9A39-34DC0201817E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-business", "account-business\account-business.csproj", "{8C65505B-D6AE-4F80-AA92-A3C649DEA980}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-business", "AccountBusiness\account-business.csproj", "{8C65505B-D6AE-4F80-AA92-A3C649DEA980}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-repository", "account-repository\account-repository.csproj", "{74A56D3C-3002-4522-94B0-252ADA49D781}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-repository", "AccountRepository\account-repository.csproj", "{74A56D3C-3002-4522-94B0-252ADA49D781}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-entities", "account-entities\account-entities.csproj", "{DE785088-CBA0-40A9-840C-484C8B3A5E74}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "account-entities", "AccountEntities\account-entities.csproj", "{DE785088-CBA0-40A9-840C-484C8B3A5E74}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountService.Tests", "AccountService.Tests\AccountService.Tests.csproj", "{8CFA8201-4C65-4FC0-91EC-EA4F6C5B4164}"
 EndProject

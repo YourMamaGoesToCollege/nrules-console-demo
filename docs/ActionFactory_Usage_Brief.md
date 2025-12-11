@@ -57,33 +57,65 @@ var action = _actionFactory.Create<CreateAccountAction>(account);
 
 ### 1. Actions with Repository Access
 
-Suppose you want an action to persist data directly:
+The `CreateAccountAction` in this project demonstrates how actions persist data directly:
 
 ```csharp
-public class CreateAccountAction : BusinessAction<CreatedAccount>
+public class CreateAccountAction : BusinessActionBase<Account>
 {
-    private readonly IAccountRepository _repository;
     private readonly Account _account;
+    private readonly IAccountRepository _repository;
+    private readonly ILogger<CreateAccountAction>? _logger;
 
-    public CreateAccountAction(IAccountRepository repository, Account account)
+    public CreateAccountAction(
+        Account account,
+        IAccountRepository repository,
+        ILogger<CreateAccountAction>? logger = null)
     {
-        _repository = repository;
+        if (account == null) throw new ArgumentNullException(nameof(account));
+        if (repository == null) throw new ArgumentNullException(nameof(repository));
+
         _account = account;
+        _repository = repository;
+        _logger = logger;
+
+        // Trim fields immediately before validation
+        _account.FirstName = _account.FirstName?.Trim();
+        _account.LastName = _account.LastName?.Trim();
+        _account.EmailAddress = _account.EmailAddress?.Trim();
+        _account.City = _account.City?.Trim();
     }
 
-    protected override async Task<CreatedAccount> RunAsync()
+    protected override async Task<Account> RunAsync()
     {
-        // Use repository to persist
-        var saved = await _repository.AddAsync(_account);
-        return new CreatedAccount(
-            Id: Guid.NewGuid(),
-            Username: saved.FirstName + " " + saved.LastName,
-            Email: saved.EmailAddress,
-            CreatedAt: saved.CreatedAt
-        );
+        _logger?.LogInformation("Preparing account for {FirstName} {LastName} ({Email})",
+            _account.FirstName, _account.LastName, _account.EmailAddress);
+
+        // Normalize email to lowercase (trimming already done in constructor)
+        _account.EmailAddress = _account.EmailAddress?.ToLower();
+
+        // Set timestamps
+        _account.CreatedAt = DateTime.UtcNow;
+        _account.UpdatedAt = DateTime.UtcNow;
+
+        _logger?.LogInformation("Persisting account for {Email}", _account.EmailAddress);
+
+        // Persist the account to the repository
+        var savedAccount = await _repository.AddAsync(_account);
+
+        _logger?.LogInformation("Account created successfully with ID {AccountId} for {Email}",
+            savedAccount.AccountId, savedAccount.EmailAddress);
+
+        return savedAccount;
     }
 }
 ```
+
+**Key points:**
+
+- The action extends `BusinessActionBase<Account>` (not `BusinessAction<T>` directly)
+- Returns `Account` entity directly (no intermediate result type)
+- Uses NRules for validation (see `Validate()` override)
+- Implements `GetAuditContext()` for audit logging
 
 - Register `CreateAccountAction` as transient in DI:
 
@@ -93,28 +125,28 @@ services.AddTransient<CreateAccountAction>();
 
 - The factory will inject the repository when resolving the action.
 
-### 2. Actions Using Other Business Services
+### 2. Actions Using Business Services
 
-Actions can depend on other business services for advanced logic:
+Actions can depend on business services for complex logic coordination:
 
 ```csharp
-public class CustomAccountAction : BusinessAction<CustomResult>
+public class CustomAccountAction : BusinessActionBase<Account>
 {
-    private readonly AccountBusinessService _businessService;
+    private readonly IAccountBusinessService _businessService;
     private readonly Account _account;
 
-    public CustomAccountAction(AccountBusinessService businessService, Account account)
+    public CustomAccountAction(IAccountBusinessService businessService, Account account)
     {
         _businessService = businessService;
         _account = account;
     }
 
-    protected override async Task<CustomResult> RunAsync()
+    protected override async Task<Account> RunAsync()
     {
         // Call other business logic
-        var prepared = _businessService.PrepareForSave(_account);
+        var result = await _businessService.CreateAccountAsync(_account);
         // ... more logic ...
-        return new CustomResult(...);
+        return result;
     }
 }
 ```
@@ -125,54 +157,144 @@ public class CustomAccountAction : BusinessAction<CustomResult>
 services.AddTransient<CustomAccountAction>();
 ```
 
+**Note:** This project uses `BusinessActionBase<T>` as the base class for all actions, not `BusinessAction<T>` directly. The base class provides validation error collection, audit logging, and common functionality.
+
 ### 3. Actions with Multiple Dependencies
 
 Actions can take any number of services as constructor parameters:
 
 ```csharp
-public class ComplexAction : BusinessAction<ComplexResult>
+public class ComplexAction : BusinessActionBase<Account>
 {
-    public ComplexAction(IAccountRepository repo, ILogger logger, AccountBusinessService businessService, Account account) { ... }
-    // ...
+    private readonly IAccountRepository _repo;
+    private readonly ILogger<ComplexAction> _logger;
+    private readonly IAccountBusinessService _businessService;
+    private readonly Account _account;
+
+    public ComplexAction(
+        IAccountRepository repo,
+        ILogger<ComplexAction> logger,
+        IAccountBusinessService businessService,
+        Account account)
+    {
+        _repo = repo;
+        _logger = logger;
+        _businessService = businessService;
+        _account = account;
+    }
+
+    protected override async Task<Account> RunAsync()
+    {
+        // Use all injected services
+        _logger.LogInformation("Processing account");
+        var result = await _businessService.CreateAccountAsync(_account);
+        return result;
+    }
 }
 ```
 
 - Register all dependencies in DI.
 - The factory will resolve and inject them.
 
+**Note:** The actual `CreateAccountAction` in this project uses NRules for validation (13 rules covering name, email, age, city, etc.). See `account-business/rules/AccountValidationRule.cs` for rule implementations.
+
 ## Injecting Multiple DI Services into an Action
 
 You can inject as many services as you need into your action by declaring them as constructor parameters. The DI container will automatically resolve and inject all registered dependencies when the factory creates the action.
 
-### Example: Action with Multiple Services
+### Example: Action with Multiple Services (from actual project)
 
 ```csharp
-public class AuditAccountAction : BusinessAction<AuditResult>
+public class CreateAccountAction : BusinessActionBase<Account>
 {
-    private readonly IAccountRepository _repository;
-    private readonly ILogger<AuditAccountAction> _logger;
-    private readonly AccountBusinessService _businessService;
     private readonly Account _account;
+    private readonly IAccountRepository _repository;
+    private readonly ILogger<CreateAccountAction>? _logger;
 
-    public AuditAccountAction(
+    public CreateAccountAction(
+        Account account,
         IAccountRepository repository,
-        ILogger<AuditAccountAction> logger,
-        AccountBusinessService businessService,
-        Account account)
+        ILogger<CreateAccountAction>? logger = null)
     {
+        if (account == null) throw new ArgumentNullException(nameof(account));
+        if (repository == null) throw new ArgumentNullException(nameof(repository));
+
+        _account = account;
         _repository = repository;
         _logger = logger;
-        _businessService = businessService;
-        _account = account;
+
+        // Trim fields immediately before validation
+        _account.FirstName = _account.FirstName?.Trim();
+        _account.LastName = _account.LastName?.Trim();
+        _account.EmailAddress = _account.EmailAddress?.Trim();
+        _account.City = _account.City?.Trim();
     }
 
-    protected override async Task<AuditResult> RunAsync()
+    protected override Task Validate()
     {
-        // Use all injected services
-        var prepared = _businessService.PrepareForSave(_account);
-        var saved = await _repository.AddAsync(prepared);
-        _logger.LogInformation($"Account created: {saved.AccountId}");
-        return new AuditResult(saved.AccountId, true);
+        _logger?.LogInformation("Validating account creation for {Email}", _account.EmailAddress);
+
+        // Create NRules repository and load validation rules
+        var repository = new RuleRepository();
+        repository.Load(x => x.From(typeof(FirstNameRequiredRule).Assembly));
+
+        // Compile rules into a session factory
+        var factory = repository.Compile();
+
+        // Create a session and insert the account for validation
+        var session = factory.CreateSession();
+        session.Insert(_account);
+
+        // Fire all rules
+        session.Fire();
+
+        // Query for validation errors
+        var errors = session.Query<ValidationError>().ToList();
+
+        // Add errors to ValidationErrors collection
+        foreach (var error in errors)
+        {
+            _logger?.LogWarning("Validation error: {ErrorMessage}", error.Message);
+            AddValidationError(error.Message);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    protected override async Task<Account> RunAsync()
+    {
+        _logger?.LogInformation("Preparing account for {FirstName} {LastName} ({Email})",
+            _account.FirstName, _account.LastName, _account.EmailAddress);
+
+        // Normalize email to lowercase (trimming already done in constructor)
+        _account.EmailAddress = _account.EmailAddress?.ToLower();
+
+        // Set timestamps
+        _account.CreatedAt = DateTime.UtcNow;
+        _account.UpdatedAt = DateTime.UtcNow;
+
+        _logger?.LogInformation("Persisting account for {Email}", _account.EmailAddress);
+
+        // Persist the account to the repository
+        var savedAccount = await _repository.AddAsync(_account);
+
+        _logger?.LogInformation("Account created successfully with ID {AccountId} for {Email}",
+            savedAccount.AccountId, savedAccount.EmailAddress);
+
+        return savedAccount;
+    }
+
+    protected override Task<Dictionary<string, object>> GetAuditContext(Account result)
+    {
+        var context = new Dictionary<string, object>
+        {
+            { "AccountId", result.AccountId },
+            { "Username", $"{result.FirstName} {result.LastName}" },
+            { "Email", result.EmailAddress ?? string.Empty },
+            { "CreatedAt", result.CreatedAt }
+        };
+
+        return Task.FromResult(context);
     }
 }
 ```
@@ -183,25 +305,28 @@ Register all dependencies and the action in your DI setup:
 
 ```csharp
 services.AddTransient<IAccountRepository, AccountRepository>();
-services.AddTransient<AccountBusinessService>();
-services.AddTransient<AuditAccountAction>();
+services.AddTransient<IAccountBusinessService, AccountBusinessService>();
+services.AddTransient<CreateAccountAction>();
 ```
 
 ### Factory Usage
 
-When you call the factory, pass any non-service arguments (like the Account):
+When you call the factory, pass the Account entity:
 
 ```csharp
-var action = _actionFactory.Create<AuditAccountAction>(account);
+var action = _actionFactory.Create<CreateAccountAction>(account);
+var result = await action.ExecuteAsync();
 ```
 
 The factory will resolve all registered services and inject them, plus any arguments you provide.
 
 **Summary:**
 
-- Just declare all needed services in your action's constructor.
+- Declare all needed services in your action's constructor.
 - Register those services and the action in DI.
-- The factory will handle the rest: all dependencies are injected automatically.
+- The factory handles the rest: all dependencies are injected automatically.
+- Actions extend `BusinessActionBase<T>` which provides validation error collection and audit logging.
+- This project uses NRules for validation (see `AccountValidationRule.cs` for 13 validation rules).
 
 ## Where to Register Actions in DI
 

@@ -1,5 +1,13 @@
 # Business Action Architecture Guide
 
+> **Note:** This guide presents the general architecture and pattern using simplified examples for educational purposes. For the actual implementation in this project, see:
+>
+> - `account-business/actions/BusinessAction.cs` - Abstract template
+> - `account-business/actions/BusinessActionBase.cs` - Base implementation
+> - `account-business/actions/CreateAccountAction.cs` - Concrete implementation
+> - `docs/CreateAccountAction_Documentation.md` - Detailed implementation documentation
+> - `docs/ActionFactory_Usage_Brief.md` - Practical usage examples
+
 ## Table of Contents
 
 1. [Overview](#overview)
