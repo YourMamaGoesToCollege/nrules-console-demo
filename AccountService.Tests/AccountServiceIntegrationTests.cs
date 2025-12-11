@@ -10,20 +10,36 @@ using AccountSvc = AccountService.AccountService;
 namespace AccountService.Tests
 {
     /// <summary>
-    /// Integration tests for AccountService using in-memory database
+    /// Integration tests for AccountService using SQLite database
     /// </summary>
     public class AccountServiceIntegrationTests
     {
         /// <summary>
-        /// Create in-memory DbContext for testing
+        /// Create SQLite DbContext for testing with unique database file per test
         /// </summary>
-        private AccountDbContext CreateInMemoryDbContext()
+        private AccountDbContext CreateSqliteDbContext()
         {
+            var dbPath = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Sqlite",
+                $"test_{Guid.NewGuid()}.db"
+            );
+
+            // Ensure directory exists
+            var directory = Path.GetDirectoryName(dbPath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory!);
+            }
+
+            var connectionString = $"Data Source={dbPath}";
             var options = new DbContextOptionsBuilder<AccountDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .UseSqlite(connectionString)
                 .Options;
 
-            return new AccountDbContext(options);
+            var context = new AccountDbContext(options);
+            context.Database.EnsureCreated(); // Create the database schema
+            return context;
         }
 
         // Helper to create AccountService with business service for DI
@@ -47,7 +63,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithValidData_ReturnsAccountWithId()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -86,7 +102,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithDuplicateEmail_ThrowsException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -105,7 +121,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithoutCity_CreatesAccountSuccessfully()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -122,7 +138,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithEmptyFirstName_ThrowsArgumentException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -138,7 +154,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithEmptyLastName_ThrowsArgumentException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -154,7 +170,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithFutureBirthDate_ThrowsArgumentException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -172,7 +188,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithInvalidEmail_ThrowsArgumentException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -188,7 +204,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_WithNegativePetCount_ThrowsArgumentException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -204,7 +220,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_NormalizesEmailToLowercase()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -221,7 +237,7 @@ namespace AccountService.Tests
         public async Task CreateAccountAsync_TrimsWhitespace()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -242,7 +258,7 @@ namespace AccountService.Tests
         public async Task GetAccountAsync_WithValidId_ReturnsAccount()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -261,7 +277,7 @@ namespace AccountService.Tests
         public async Task GetAccountAsync_WithInvalidId_ReturnsNull()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -276,7 +292,7 @@ namespace AccountService.Tests
         public async Task GetAccountByEmailAsync_WithValidEmail_ReturnsAccount()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -295,7 +311,7 @@ namespace AccountService.Tests
         public async Task GetAccountByEmailAsync_WithInvalidEmail_ReturnsNull()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -314,7 +330,7 @@ namespace AccountService.Tests
         public async Task GetAllAccountsAsync_WithMultipleAccounts_ReturnsAllAccounts()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -333,7 +349,7 @@ namespace AccountService.Tests
         public async Task GetActiveAccountsAsync_ReturnsOnlyActiveAccounts()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -357,7 +373,7 @@ namespace AccountService.Tests
         public async Task UpdateAccountAsync_WithValidData_UpdatesAccount()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -382,7 +398,7 @@ namespace AccountService.Tests
         public async Task UpdateAccountAsync_WithNonexistentId_ThrowsException()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -401,7 +417,7 @@ namespace AccountService.Tests
         public async Task DeleteAccountAsync_WithValidId_DeletesAccount()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 
@@ -420,7 +436,7 @@ namespace AccountService.Tests
         public async Task DeleteAccountAsync_WithInvalidId_ReturnsFalse()
         {
             // Arrange
-            var dbContext = CreateInMemoryDbContext();
+            var dbContext = CreateSqliteDbContext();
             var repository = new AccountRepository.AccountRepository(dbContext);
             var service = CreateService(repository);
 

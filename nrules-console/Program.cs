@@ -18,14 +18,23 @@ services.AddTransient<CreateAccountAction>();
 // Register business service and its interface
 services.AddTransient<IAccountBusinessService, AccountBusinessService>();
 
-// Register repository & DbContext for demo (in-memory DB here for simplicity)
-services.AddDbContext<AccountDbContext>(opt => opt.UseInMemoryDatabase("nrules-demo"));
+// Register repository & DbContext using SQLite database
+var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "Sqlite", "accounts.db");
+var connectionString = $"Data Source={dbPath}";
+services.AddDbContext<AccountDbContext>(opt => opt.UseSqlite(connectionString));
 services.AddTransient<IAccountRepository, AccountRepository.AccountRepository>();
 
 // Register AccountService
 services.AddTransient<AccountService.AccountService>();
 
 var provider = services.BuildServiceProvider();
+
+// Ensure database is created
+using (var scope = provider.CreateScope())
+{
+	var dbContext = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+	dbContext.Database.EnsureCreated();
+}
 
 Console.WriteLine("nrules-console demo DI container configured.");
 
