@@ -45,7 +45,7 @@ namespace AccountService
             var prepared = await _businessService.CreateAccountAsync(account);
 
             // Persist via repository and return persisted entity (with AccountId populated)
-            return await _accountRepository.AddAsync(prepared);
+            return prepared;
         }
 
         /// <summary>
@@ -53,7 +53,8 @@ namespace AccountService
         /// </summary>
         public async Task<Account?> GetAccountAsync(int accountId)
         {
-            _businessService.ValidateAccountId(accountId);
+            if (accountId <= 0)
+                throw new ArgumentException("Account ID must be greater than 0", nameof(accountId));
             return await _accountRepository.GetByIdAsync(accountId);
         }
 
@@ -99,14 +100,15 @@ namespace AccountService
             if (account == null) throw new ArgumentNullException(nameof(account));
 
             // Validate id
-            _businessService.ValidateAccountId(account.AccountId);
+            if (account.AccountId <= 0)
+                throw new ArgumentException("Account ID must be greater than 0", nameof(account.AccountId));
 
             var existing = await _accountRepository.GetByIdAsync(account.AccountId);
             if (existing == null)
                 throw new InvalidOperationException($"Account with ID {account.AccountId} not found.");
 
             // Check if new email is already taken by another account
-            var normalizedNewEmail = _businessService.NormalizeEmail(account.EmailAddress);
+            var normalizedNewEmail = account.EmailAddress?.Trim().ToLower() ?? string.Empty;
             if (existing.EmailAddress != normalizedNewEmail)
             {
                 if (await _accountRepository.EmailExistsAsync(normalizedNewEmail))
@@ -114,16 +116,16 @@ namespace AccountService
             }
 
             // Apply incoming fields
-            existing.FirstName = account.FirstName;
-            existing.LastName = account.LastName;
+            existing.FirstName = account.FirstName?.Trim();
+            existing.LastName = account.LastName?.Trim();
             existing.BirthDate = account.BirthDate;
-            existing.EmailAddress = account.EmailAddress;
-            existing.City = account.City;
+            existing.EmailAddress = normalizedNewEmail;
+            existing.City = account.City?.Trim();
             existing.PetCount = account.PetCount;
             existing.IsActive = account.IsActive;
+            existing.UpdatedAt = DateTime.UtcNow;
 
-            var prepared = _businessService.PrepareForSave(existing);
-            return await _accountRepository.UpdateAsync(prepared);
+            return await _accountRepository.UpdateAsync(existing);
         }
 
         /// <summary>
@@ -131,7 +133,8 @@ namespace AccountService
         /// </summary>
         public async Task<bool> DeleteAccountAsync(int accountId)
         {
-            _businessService.ValidateAccountId(accountId);
+            if (accountId <= 0)
+                throw new ArgumentException("Account ID must be greater than 0", nameof(accountId));
             return await _accountRepository.DeleteAsync(accountId);
         }
     }

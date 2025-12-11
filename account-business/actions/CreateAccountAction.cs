@@ -90,6 +90,12 @@ namespace AccountBusiness.Actions
             _logger?.LogInformation("Preparing account for {FirstName} {LastName} ({Email})",
                 _account.FirstName, _account.LastName, _account.EmailAddress);
 
+            // Normalize and trim fields
+            _account.FirstName = _account.FirstName?.Trim();
+            _account.LastName = _account.LastName?.Trim();
+            _account.EmailAddress = _account.EmailAddress?.Trim().ToLower();
+            _account.City = _account.City?.Trim();
+
             // Set timestamps
             _account.CreatedAt = DateTime.UtcNow;
             _account.UpdatedAt = DateTime.UtcNow;
