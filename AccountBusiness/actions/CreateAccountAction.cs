@@ -28,12 +28,17 @@ namespace AccountBusiness.Actions
             _account = account;
             _repository = repository;
             _logger = logger;
+        }
 
-            // Trim fields immediately before validation
+        protected override Task PreValidate()
+        {
+            // Trim and normalize all string fields before validation
             _account.FirstName = _account.FirstName?.Trim();
             _account.LastName = _account.LastName?.Trim();
-            _account.EmailAddress = _account.EmailAddress?.Trim();
+            _account.EmailAddress = _account.EmailAddress?.Trim().ToLowerInvariant();
             _account.City = _account.City?.Trim();
+
+            return base.PreValidate();
         }
 
         protected override Task Validate()
@@ -97,9 +102,6 @@ namespace AccountBusiness.Actions
         {
             _logger?.LogInformation("Preparing account for {FirstName} {LastName} ({Email})",
                 _account.FirstName, _account.LastName, _account.EmailAddress);
-
-            // Normalize email to lowercase (trimming already done in constructor)
-            _account.EmailAddress = _account.EmailAddress?.ToLower();
 
             // Set timestamps
             _account.CreatedAt = DateTime.UtcNow;

@@ -1,9 +1,7 @@
-using System;
 using AccountBusiness.Rules.Validation;
 using AccountEntities;
 using FluentAssertions;
 using NRules.Testing;
-using Xunit;
 
 namespace AccountService.Tests
 {

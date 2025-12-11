@@ -26,7 +26,13 @@ namespace AccountBusiness.Actions
         /// </summary>
         protected virtual async Task PreExecuteAsync()
         {
+            await PreValidate();
             await Validate();
+        }
+
+        protected virtual Task PreValidate()
+        {
+            return Task.CompletedTask;
         }
 
         /// <summary>
